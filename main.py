@@ -1,4 +1,6 @@
 import csv
+import itertools
+import pandas as pd
 
 def main():
 
@@ -61,5 +63,52 @@ def main():
         for row in reader:
             print(row["Fruits"], row["Colors"])
     
+    #with open("spotify_data clean.csv", mode='r', encoding='utf-8') as spotify_data:
+    #    reader= csv.DictReader(spotify_data)
+    #    print(
+    #            'Artist Name',
+    #            'Track Name',
+    #            'Album Name',
+    #            'Artist Genres'
+    #            )
+    #    for row in itertools.islice(reader, 25):
+    #        print(
+    #            row['artist_name'],
+    #            row['track_name'],
+    #            row['album_name'],
+    #            row['artist_genres']
+    #            )
+
+    # Read csv file
+    dataframe = pd.read_csv('spotify_data clean.csv')
+    # Create a filtered dataframe
+    filtered_dataframe = dataframe[['artist_name','track_name','album_name','artist_genres']].head(25) 
+    print(filtered_dataframe)
+
+    # Create a new set from the genres contained within the csv, Sets are always unique
+    genres_set = set(dataframe['artist_genres'])
+    print(genres_set)
+
+    # Display all rows 
+    pd.set_option('display.max_rows', None)
+
+    # Get user input for genre
+    choice = input("Enter a genre to filter by: ")
+    # Filter dataframe by genres containing user input 
+    filtered_by_genre = dataframe[dataframe['artist_genres'].str.contains(choice, case=False, na=False)]
+    print(filtered_by_genre[['artist_name','track_name','album_name','artist_genres']])
+
+    # Get user input for sorting
+    choice2 = input("Sort by popularity? (yes/no): ")
+
+    # If the user typed 'yes'
+    if choice2.lower() == 'yes':
+        # Sort by track popularity
+        sorted_by_popularity = filtered_by_genre.sort_values(by='track_popularity', ascending=False)
+        print(sorted_by_popularity[['track_popularity', 'artist_name','track_name','album_name','artist_genres']])
+    else:
+        # If user did not type 'yes'
+        return
+
 if __name__ == "__main__":
     main()
