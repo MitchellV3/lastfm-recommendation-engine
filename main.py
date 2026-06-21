@@ -9,6 +9,15 @@ from sklearn.preprocessing import MinMaxScaler
 from dotenv import load_dotenv
 load_dotenv()
 
+
+GLOBAL_TOP_TRACKS_LIMIT = 10
+SIMILAR_TRACKS_LIMIT = 10
+SIMILAR_ARTISTS_LIMIT = 100
+SIMILAR_ARTIST_TRACKS_LIMIT = 2
+TAGS_LIMIT = 15
+RATE_LIMIT_DELAY = 1
+
+
 def process_tags(tags_list: list[pylast.TopItem]) -> list[str]:
     target_tags = []
     
@@ -37,14 +46,14 @@ def extract_track_info(track:pylast.Track) -> dict[str, str | None]:
         track_artist_obj = track.get_artist()
         track_artist = track_artist_obj.get_name() if track_artist_obj else ""
             
-        
+        time.sleep(RATE_LIMIT_DELAY)
         print("TRACK_OBJ: ",track)
         print("TRACK_NAME: ",track_name)
 
         print("TRACK_ARTIST_OBJ: ",track_artist_obj)
         print("TRACK_ARTIST: ",track_artist)
 
-        tags_list = process_tags(track.get_top_tags(limit=3))
+        tags_list = process_tags(track.get_top_tags(limit=TAGS_LIMIT))
         print("TARGET_TAGS_LIST: ",tags_list)
 
         track_dict = dict(track_name=track_name,track_artist=track_artist,track_tags=tags_list)
@@ -97,7 +106,9 @@ def main():
 
     try:
         target_track_search = network.search_for_track(user_artist_selection, user_song_selection)
+        time.sleep(RATE_LIMIT_DELAY)
         results = target_track_search.get_next_page()
+
         target_track = results[0] if results else None
         if not target_track:
             print("Could not find that track on Last.fm.")
@@ -116,11 +127,11 @@ def main():
     
 
     baseline_tracks_list = []
-    baseline_top_tracks = [track.item for track in network.get_top_tracks(limit=3)]
+    baseline_top_tracks = [track.item for track in network.get_top_tracks(limit=GLOBAL_TOP_TRACKS_LIMIT)]
     print("BASELINE_TOP_TRACKS: ", baseline_top_tracks)
     for track in baseline_top_tracks:
 
-        time.sleep(0.2) # Add a delay to avoid hitting API rate limits
+        time.sleep(RATE_LIMIT_DELAY) # Add a delay to avoid hitting API rate limits
 
         if isinstance(track, pylast.Track):
             baseline_tracks_dict = extract_track_info(track)
@@ -131,11 +142,12 @@ def main():
     print(separator)
 
     similar_tracks_list = []
-    similar_tracks = [track.item for track in target_track.get_similar(limit=2)]
+    time.sleep(RATE_LIMIT_DELAY)      
+    similar_tracks = [track.item for track in target_track.get_similar(limit=SIMILAR_TRACKS_LIMIT)]
     print("SIMILAR_TRACKS: ", similar_tracks)
     for track in similar_tracks:
 
-        time.sleep(0.2) 
+        time.sleep(RATE_LIMIT_DELAY)
 
         if isinstance(track, pylast.Track):
             similar_tracks_dict = extract_track_info(track)
@@ -149,18 +161,19 @@ def main():
     target_artist = target_track.get_artist()
 
     similar_artist_tracks_list = []
-    similar_artists = [artist.item for artist in target_artist.get_similar(limit=1)] if target_artist else []
+    time.sleep(RATE_LIMIT_DELAY)      
+    similar_artists = [artist.item for artist in target_artist.get_similar(limit=SIMILAR_ARTISTS_LIMIT)] if target_artist else []
     print("SIMILAR_ARTISTS: ", similar_artists)
     for artist in similar_artists:
 
-        time.sleep(0.2)
+        time.sleep(RATE_LIMIT_DELAY)
 
-        similar_artist_tracks = [track.item for track in artist.get_top_tracks(limit=1)]
+        similar_artist_tracks = [track.item for track in artist.get_top_tracks(limit=SIMILAR_ARTIST_TRACKS_LIMIT)]
         print("SIMILAR_ARTIST_TRACKS: ", similar_artist_tracks)
 
         for track in similar_artist_tracks:
 
-            time.sleep(0.2) 
+            time.sleep(RATE_LIMIT_DELAY) 
 
             if isinstance(track, pylast.Track):
                 similar_artist_track_dict = extract_track_info(track)
@@ -189,7 +202,7 @@ def main():
     similar_songs = sorted(similar_songs, key=lambda x: x[1], reverse=True)
     print("SIMILAR_SONGS: ", similar_songs)
 
-    top_recommendations = similar_songs[1:30]
+    top_recommendations = similar_songs[1:150]
     print(f"If you like: '{target_track_dict['track_name']}' by '{target_track_dict['track_artist']}'")
     print("You might also like: ")
     # Loop through the songs 
