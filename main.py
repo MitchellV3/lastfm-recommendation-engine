@@ -146,6 +146,8 @@ def main():
     separator = "-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-"
     print(separator)
 
+    os.makedirs("recommendations", exist_ok=True)
+
     print("Building music recommendation model based on your selection...")
     
 
@@ -241,7 +243,8 @@ def main():
 
     headers = ["Track Name", "Artist Name", "Similarity Score"]
 
-    csv_file_path = f"{target_track_dict.get('track_name') or 'unknown_track_name'}_recommendations.csv"
+    timestamp = time.strftime("%Y%m%d_%H%M%S")
+    csv_file_path = f"recommendations/{target_track_dict.get('track_name') or 'unknown_track_name'}_recommendations_{timestamp}.csv"
 
     # Loop through the songs, print to the console, and write to a CSV file
     with open(csv_file_path, mode='w', newline='', encoding='utf-8') as file:
