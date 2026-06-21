@@ -7,5 +7,6 @@ requires-python = ">=3.13"
 dependencies = [
     "pandas>=3.0.3",
     "pylast>=7.0.2",
+    "python-dotenv>=1.2.2",
     "scikit-learn>=1.9.0",
 ]
