@@ -1,6 +1,7 @@
 import csv
 import itertools
 import os
+import random
 import time
 import pandas as pd
 import pylast
@@ -11,10 +12,11 @@ load_dotenv()
 
 
 GLOBAL_TOP_TRACKS_LIMIT = 10
-SIMILAR_TRACKS_LIMIT = 10
+SIMILAR_TRACKS_LIMIT = 25
 SIMILAR_ARTISTS_LIMIT = 100
-SIMILAR_ARTIST_TRACKS_LIMIT = 2
-TAGS_LIMIT = 15
+SIMILAR_ARTIST_TRACKS_LIMIT = 10
+SIMILAR_ARTIST_RANDOM_TRACKS_LIMIT = 1
+TAGS_LIMIT = 25
 RATE_LIMIT_DELAY = 1
 
 def use_artist_tags(artist:pylast.Artist  | None) -> list[str]:
@@ -22,7 +24,7 @@ def use_artist_tags(artist:pylast.Artist  | None) -> list[str]:
         print("No artist information available to retrieve tags.")
         return []
     
-    print(f"Using artist tags for {artist.get_name()} instead.")
+    print(f"Using artist tags for {artist.get_name()}.")
 
     try:
         artist_tags_list = artist.get_top_tags(limit=TAGS_LIMIT)
@@ -70,12 +72,10 @@ def extract_track_info(track:pylast.Track) -> dict[str, str | None]:
         print("TRACK_ARTIST: ",track_artist)
 
         tags_list = track.get_top_tags(limit=TAGS_LIMIT)
+        track_tags = process_tags(tags_list) if tags_list else []
 
-        if not tags_list:
-            print(f"No tags found for track: {track_name} by {track_artist}.")
-            tags_list = use_artist_tags(track_artist_obj)
-        else:
-            tags_list = process_tags(tags_list)
+        artist_tags = use_artist_tags(track_artist_obj)
+        tags_list = track_tags + artist_tags
 
         print("TARGET_TAGS_LIST: ",tags_list)
 
@@ -193,8 +193,12 @@ def main():
 
         similar_artist_tracks = [track.item for track in artist.get_top_tracks(limit=SIMILAR_ARTIST_TRACKS_LIMIT)]
         print("SIMILAR_ARTIST_TRACKS: ", similar_artist_tracks)
+        
+        # Select a random (SIMILAR_ARTIST_RANDOM_TRACKS_LIMIT) number of tracks from the similar artist's top tracks to add diversity to the recommendations
+        similar_artist_tracks_random = random.sample(similar_artist_tracks, min(SIMILAR_ARTIST_RANDOM_TRACKS_LIMIT, len(similar_artist_tracks)))
+        print("SIMILAR_ARTIST_TRACKS_RANDOM: ", similar_artist_tracks)
 
-        for track in similar_artist_tracks:
+        for track in similar_artist_tracks_random:
 
             time.sleep(RATE_LIMIT_DELAY) 
 
@@ -207,7 +211,13 @@ def main():
     print(separator)
 
     # Combine all track dictionaries into one list
-    all_tracks_list = set([target_track_dict] + baseline_tracks_list + similar_tracks_list + similar_artist_tracks_list)
+    seen = set()
+    all_tracks_list = []
+    for track in [target_track_dict] + baseline_tracks_list + similar_tracks_list + similar_artist_tracks_list:
+        key = (track.get("track_name"), track.get("track_artist"))
+        if key not in seen:
+            seen.add(key)
+            all_tracks_list.append(track)
     print("ALL_TRACKS_LIST: ", all_tracks_list)
 
     extracted_data_df = pd.DataFrame(all_tracks_list)
@@ -225,7 +235,7 @@ def main():
     similar_songs = sorted(similar_songs, key=lambda x: x[1], reverse=True)
     print("SIMILAR_SONGS: ", similar_songs)
 
-    top_recommendations = similar_songs[1:500]
+    top_recommendations = similar_songs[1:125]
     print(f"If you like: '{target_track_dict['track_name']}' by '{target_track_dict['track_artist']}'")
     print("You might also like: ")
 
