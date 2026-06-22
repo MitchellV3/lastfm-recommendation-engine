@@ -91,6 +91,31 @@ def extract_track_info(track:pylast.Track) -> dict[str, str | None]:
 
 
 
+# Steps:
+# Get user input and search for a track based on the artist name and song name 
+# # Get tags for that specific track
+# 
+# Take the tag weights (represented by 'count' in responses) and multiply each instance of that tag * its flattened weight, add it to a tags list
+# # i.e. if the track has a tag called 'EDM' with a weight of 64, the weight needs to be normalized into an int from 1-10.
+# # # Then the 'EDM' tag is multiplied by the normalized weight. i.e. 'EDM' * 6 = EDM, EDM, EDM, EDM, EDM, EDM
+# # # # Then each tag is added to the tags list 
+# 
+# Turn track into a dictionary with the keys: track_name, track_artist, track_tags
+#
+# Get the baseline tracks for the list 
+# # Turn baseline tracks into dictionaries in the same way
+# 
+# Get similar tracks to the selected track 
+# # Turn similar tracks into dictionaries 
+# 
+# Get similar artists to the selected track's artist
+# # Retrieve the top x number of tracks from each similar artist 
+# # # Turn each track into dictionary 
+# 
+# Add all of the dictionaries together into one big list 
+# # Turn that list of dictionaries into a dataframe  
+
+
 def main():
     API_KEY = os.getenv("API_KEY")
     API_SECRET = os.getenv("API_SECRET")
@@ -104,32 +129,6 @@ def main():
     user_song_selection = (input('Input a track name to get similar results: ')).rstrip()
     user_artist_selection = (input('Input an artist name for the song: ')).rstrip()
 
-    # Steps:
-    # Get user input and search for a track based on the artist name and song name 
-    # # Get tags for that specific track
-    # 
-    # Take the tag weights (represented by 'count' in responses) and multiply each instance of that tag * its flattened weight, add it to a tags list
-    # # i.e. if the track has a tag called 'EDM' with a weight of 64, the weight needs to be normalized into an int from 1-10.
-    # # # Then the 'EDM' tag is multiplied by the normalized weight. i.e. 'EDM' * 6 = EDM, EDM, EDM, EDM, EDM, EDM
-    # # # # Then each tag is added to the tags list 
-    # 
-    # Turn track into a dictionary with the keys: track_name, track_artist, track_tags
-    #
-    # Get the baseline tracks for the list 
-    # # Turn baseline tracks into dictionaries in the same way
-    # 
-    # Get similar tracks to the selected track 
-    # # Turn similar tracks into dictionaries 
-    # 
-    # Get similar artists to the selected track's artist
-    # # Retrieve the top x number of tracks from each similar artist 
-    # # # Turn each track into dictionary 
-    # 
-    # Add all of the dictionaries together into one big list 
-    # # Turn that list of dictionaries into a dataframe  
-
-
-
     try:
         target_track_search = network.search_for_track(user_artist_selection, user_song_selection)
         #time.sleep(RATE_LIMIT_DELAY)
@@ -141,6 +140,12 @@ def main():
             return
         
         target_track_dict = extract_track_info(target_track)
+        if not target_track_dict.get("track_name") or not target_track_dict.get("track_artist"):
+            print("Could not extract track information for the selected track.")
+            return
+        if not target_track_dict.get("track_tags"):
+            print("Could not extract any tags for the selected track or artist.")
+            return
 
     except Exception as e:
         print(f"Could not find that track on Last.fm. Error: {e}")
