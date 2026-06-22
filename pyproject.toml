@@ -9,4 +9,5 @@ dependencies = [
     "pylast>=7.0.2",
     "python-dotenv>=1.2.2",
     "scikit-learn>=1.9.0",
+    "tqdm>=4.68.3",
 ]

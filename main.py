@@ -7,24 +7,26 @@ import pandas as pd
 import pylast
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.preprocessing import MinMaxScaler 
+from tqdm import tqdm
 from dotenv import load_dotenv
 load_dotenv()
 
 
 GLOBAL_TOP_TRACKS_LIMIT = 10
-SIMILAR_TRACKS_LIMIT = 25
+SIMILAR_TRACKS_LIMIT = 50
 SIMILAR_ARTISTS_LIMIT = 100
 SIMILAR_ARTIST_TRACKS_LIMIT = 10
 SIMILAR_ARTIST_RANDOM_TRACKS_LIMIT = 1
 TAGS_LIMIT = 25
 RATE_LIMIT_DELAY = 1
+ 
 
 def use_artist_tags(artist:pylast.Artist  | None) -> list[str]:
     if not artist:
         print("No artist information available to retrieve tags.")
         return []
     
-    print(f"Using artist tags for {artist.get_name()}.")
+    print(f"Artist tags for {artist.get_name()}.")
 
     try:
         artist_tags_list = artist.get_top_tags(limit=TAGS_LIMIT)
@@ -65,10 +67,10 @@ def extract_track_info(track:pylast.Track) -> dict[str, str | None]:
         track_artist = track_artist_obj.get_name() if track_artist_obj else ""
             
         #time.sleep(RATE_LIMIT_DELAY)
-        print("TRACK_OBJ: ",track)
+        #print("TRACK_OBJ: ",track)
         print("TRACK_NAME: ",track_name)
 
-        print("TRACK_ARTIST_OBJ: ",track_artist_obj)
+        #print("TRACK_ARTIST_OBJ: ",track_artist_obj)
         print("TRACK_ARTIST: ",track_artist)
 
         tags_list = track.get_top_tags(limit=TAGS_LIMIT)
@@ -77,10 +79,11 @@ def extract_track_info(track:pylast.Track) -> dict[str, str | None]:
         artist_tags = use_artist_tags(track_artist_obj)
         tags_list = track_tags + artist_tags
 
-        print("TARGET_TAGS_LIST: ",tags_list)
+        #print("TARGET_TAGS_LIST: ",tags_list)
 
         track_dict = dict(track_name=track_name,track_artist=track_artist,track_tags=tags_list)
         print("TRACK_DICT: ",track_dict)
+        
     except Exception as e:
         print("Something went wrong when extracting track data.\nError: ",e)
     
@@ -153,8 +156,10 @@ def main():
 
     baseline_tracks_list = []
     baseline_top_tracks = [track.item for track in network.get_top_tracks(limit=GLOBAL_TOP_TRACKS_LIMIT)]
-    print("BASELINE_TOP_TRACKS: ", baseline_top_tracks)
-    for track in baseline_top_tracks:
+    #print("BASELINE_TOP_TRACKS: ", baseline_top_tracks)
+    
+    print("Fetching baseline global top tracks...")
+    for track in tqdm(baseline_top_tracks):
 
         time.sleep(RATE_LIMIT_DELAY) # Add a delay to avoid hitting API rate limits
 
@@ -163,14 +168,16 @@ def main():
             baseline_tracks_list.append(baseline_tracks_dict)
 
 
-    print("BASELINE_TRACKS_LIST: ", baseline_tracks_list)
+    #print("BASELINE_TRACKS_LIST: ", baseline_tracks_list)
     print(separator)
 
     similar_tracks_list = []
     #time.sleep(RATE_LIMIT_DELAY)      
     similar_tracks = [track.item for track in target_track.get_similar(limit=SIMILAR_TRACKS_LIMIT)]
-    print("SIMILAR_TRACKS: ", similar_tracks)
-    for track in similar_tracks:
+    #print("SIMILAR_TRACKS: ", similar_tracks)
+
+    print("Fetching similar tracks...")
+    for track in tqdm(similar_tracks):
 
         time.sleep(RATE_LIMIT_DELAY)
 
@@ -179,7 +186,7 @@ def main():
             similar_tracks_list.append(similar_tracks_dict)
 
 
-    print("SIMILAR_TRACKS_LIST: ", similar_tracks_list)
+    #print("SIMILAR_TRACKS_LIST: ", similar_tracks_list)
     print(separator)
 
 
@@ -188,17 +195,19 @@ def main():
     similar_artist_tracks_list = []
     #time.sleep(RATE_LIMIT_DELAY)      
     similar_artists = [artist.item for artist in target_artist.get_similar(limit=SIMILAR_ARTISTS_LIMIT)] if target_artist else []
-    print("SIMILAR_ARTISTS: ", similar_artists)
-    for artist in similar_artists:
+    #print("SIMILAR_ARTISTS: ", similar_artists)
+        
+    print("Fetching top tracks for similar artists...")
+    for artist in tqdm(similar_artists):
 
         time.sleep(RATE_LIMIT_DELAY)
 
         similar_artist_tracks = [track.item for track in artist.get_top_tracks(limit=SIMILAR_ARTIST_TRACKS_LIMIT)]
-        print("SIMILAR_ARTIST_TRACKS: ", similar_artist_tracks)
+        #print("SIMILAR_ARTIST_TRACKS: ", similar_artist_tracks)
         
         # Select a random (SIMILAR_ARTIST_RANDOM_TRACKS_LIMIT) number of tracks from the similar artist's top tracks to add diversity to the recommendations
         similar_artist_tracks_random = random.sample(similar_artist_tracks, min(SIMILAR_ARTIST_RANDOM_TRACKS_LIMIT, len(similar_artist_tracks)))
-        print("SIMILAR_ARTIST_TRACKS_RANDOM: ", similar_artist_tracks)
+        #print("SIMILAR_ARTIST_TRACKS_RANDOM: ", similar_artist_tracks)
 
         for track in similar_artist_tracks_random:
 
@@ -209,7 +218,7 @@ def main():
                 similar_artist_tracks_list.append(similar_artist_track_dict)
 
 
-    print("SIMILAR_ARTIST_TRACKS_LIST: ", similar_artist_tracks_list)
+    #print("SIMILAR_ARTIST_TRACKS_LIST: ", similar_artist_tracks_list)
     print(separator)
 
     # Combine all track dictionaries into one list
@@ -220,13 +229,13 @@ def main():
         if key not in seen:
             seen.add(key)
             all_tracks_list.append(track)
-    print("ALL_TRACKS_LIST: ", all_tracks_list)
+    #print("ALL_TRACKS_LIST: ", all_tracks_list)
 
     extracted_data_df = pd.DataFrame(all_tracks_list)
-    print("EXTRACTED_DATA_DF: ", extracted_data_df)
+    print(extracted_data_df)
 
     song_characteristics_to_compare = pd.get_dummies(extracted_data_df['track_tags'].apply(pd.Series).stack()).groupby(level=0).sum()
-    print("SONG_CHARACTERISTICS_TO_COMPARE: ", song_characteristics_to_compare)
+    #print("SONG_CHARACTERISTICS_TO_COMPARE: ", song_characteristics_to_compare)
 
     similarity_matrix = cosine_similarity(song_characteristics_to_compare)
     print(similarity_matrix)
@@ -237,7 +246,7 @@ def main():
     similar_songs = sorted(similar_songs, key=lambda x: x[1], reverse=True)
     print("SIMILAR_SONGS: ", similar_songs)
 
-    top_recommendations = similar_songs[1:125]
+    top_recommendations = similar_songs[1:150]
     print(f"If you like: '{target_track_dict['track_name']}' by '{target_track_dict['track_artist']}'")
     print("You might also like: ")
 
@@ -246,6 +255,7 @@ def main():
     timestamp = time.strftime("%Y%m%d_%H%M%S")
     csv_file_path = f"recommendations/{target_track_dict.get('track_name') or 'unknown_track_name'}_recommendations_{timestamp}.csv"
 
+    print("Writing recommendations to CSV file: ", csv_file_path)
     # Loop through the songs, print to the console, and write to a CSV file
     with open(csv_file_path, mode='w', newline='', encoding='utf-8') as file:
         writer = csv.writer(file)
@@ -256,8 +266,6 @@ def main():
             artist_name = recommended_song_row['track_artist']
             print(f"- {song_title} by {artist_name} (Score: {similarity_score:.2f})")
             writer.writerow([song_title, artist_name, f"{similarity_score:.2f}"])  # Write the song data row
-
-    
 
 
 if __name__ == "__main__":
