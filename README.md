@@ -29,8 +29,27 @@ A music recommendation engine that uses the Last.fm API to suggest tracks based 
 
 ## Usage
 
+### Web UI (Streamlit)
+
+```bash
+uv run streamlit run app.py
+```
+
+Opens a browser where you can enter a track and artist name, then view recommendations in an interactive table.
+
+### CLI
+
 ```bash
 uv run main.py
 ```
 
 You'll be prompted to enter a track name and artist name. Recommendations will be printed to the console and exported to a timestamped CSV in the `recommendations/` folder.
+
+## Dependencies
+
+- `pandas` — data manipulation
+- `pylast` — Last.fm API wrapper
+- `python-dotenv` — environment variable loading
+- `scikit-learn` — cosine similarity calculation
+- `streamlit` — web UI
+- `tqdm` — progress bars
