@@ -253,9 +253,13 @@ def run_recommendation(user_artist_selection:str, user_song_selection:str) -> tu
     similarity_scores = similarity_matrix[selected_song_index]
     similar_songs = list(enumerate(similarity_scores))
     similar_songs = sorted(similar_songs, key=lambda x: x[1], reverse=True)
-    print("SIMILAR_SONGS: ", similar_songs)
+    #print("SIMILAR_SONGS: ", similar_songs)
 
-    top_recommendations = similar_songs[1:150]
+    top_recommendations = []
+    for song_index, similarity_score in similar_songs[1:150]:
+        recommended_song_row = extracted_data_df.iloc[song_index]
+        top_recommendations.append((recommended_song_row['track_name'], recommended_song_row['track_artist'], similarity_score))
+
     print(f"If you like: '{target_track_dict['track_name']}' by '{target_track_dict['track_artist']}'")
     print("You might also like: ")
 
@@ -265,16 +269,12 @@ def run_recommendation(user_artist_selection:str, user_song_selection:str) -> tu
     csv_file_path = f"recommendations/{target_track_dict.get('track_name') or 'unknown_track_name'}_recommendations_{timestamp}.csv"
 
     print("Writing recommendations to CSV file: ", csv_file_path)
-    # Loop through the songs, print to the console, and write to a CSV file
     with open(csv_file_path, mode='w', newline='', encoding='utf-8') as file:
         writer = csv.writer(file)
-        writer.writerow(headers)  # Write the header row
-        for song_index, similarity_score in top_recommendations:
-            recommended_song_row = extracted_data_df.iloc[song_index]
-            song_title = recommended_song_row['track_name']
-            artist_name = recommended_song_row['track_artist']
+        writer.writerow(headers)
+        for song_title, artist_name, similarity_score in top_recommendations:
             print(f"- {song_title} by {artist_name} (Score: {similarity_score:.2f})")
-            writer.writerow([song_title, artist_name, f"{similarity_score:.2f}"])  # Write the song data row
+            writer.writerow([song_title, artist_name, f"{similarity_score:.2f}"])
         
     print("Recommendations written to CSV file successfully.")
 
