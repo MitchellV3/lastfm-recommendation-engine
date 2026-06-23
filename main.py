@@ -3,6 +3,7 @@ import itertools
 import os
 import random
 import time
+from typing import Any
 import pandas as pd
 import pylast
 from sklearn.metrics.pairwise import cosine_similarity
@@ -11,6 +12,13 @@ from tqdm import tqdm
 from dotenv import load_dotenv
 load_dotenv()
 
+API_KEY = os.getenv("API_KEY")
+API_SECRET = os.getenv("API_SECRET")
+
+network = pylast.LastFMNetwork(    
+    api_key=str(API_KEY),
+    api_secret=str(API_SECRET)
+)
 
 GLOBAL_TOP_TRACKS_LIMIT = 10
 SIMILAR_TRACKS_LIMIT = 50
@@ -116,18 +124,14 @@ def extract_track_info(track:pylast.Track) -> dict[str, str | None]:
 # # Turn that list of dictionaries into a dataframe  
 
 
-def main():
-    API_KEY = os.getenv("API_KEY")
-    API_SECRET = os.getenv("API_SECRET")
-
-    network = pylast.LastFMNetwork(    
-        api_key=str(API_KEY),
-        api_secret=str(API_SECRET)
-    )
-
+def get_user_input() -> tuple[str, str]:
     # User input
     user_song_selection = (input('Input a track name to get similar results: ')).rstrip()
     user_artist_selection = (input('Input an artist name for the song: ')).rstrip()
+    return user_song_selection,user_artist_selection
+
+
+def run_recommendation(user_artist_selection:str, user_song_selection:str) -> tuple[str | None, str | None, list[tuple[int, Any]], str] | None:
 
     try:
         target_track_search = network.search_for_track(user_artist_selection, user_song_selection)
@@ -164,7 +168,7 @@ def main():
     #print("BASELINE_TOP_TRACKS: ", baseline_top_tracks)
     
     print("Fetching baseline global top tracks...")
-    for track in tqdm(baseline_top_tracks):
+    for track in tqdm(baseline_top_tracks,desc="Processing baseline tracks..."):
 
         time.sleep(RATE_LIMIT_DELAY) # Add a delay to avoid hitting API rate limits
 
@@ -182,7 +186,7 @@ def main():
     #print("SIMILAR_TRACKS: ", similar_tracks)
 
     print("Fetching similar tracks...")
-    for track in tqdm(similar_tracks):
+    for track in tqdm(similar_tracks,desc="Processing similar tracks..."):
 
         time.sleep(RATE_LIMIT_DELAY)
 
@@ -203,7 +207,7 @@ def main():
     #print("SIMILAR_ARTISTS: ", similar_artists)
         
     print("Fetching top tracks for similar artists...")
-    for artist in tqdm(similar_artists):
+    for artist in tqdm(similar_artists,desc="Processing similar artists..."):
 
         time.sleep(RATE_LIMIT_DELAY)
 
@@ -271,9 +275,15 @@ def main():
             artist_name = recommended_song_row['track_artist']
             print(f"- {song_title} by {artist_name} (Score: {similarity_score:.2f})")
             writer.writerow([song_title, artist_name, f"{similarity_score:.2f}"])  # Write the song data row
+        
+    print("Recommendations written to CSV file successfully.")
+
+    return target_track_dict.get("track_name"), target_track_dict.get("track_artist"),top_recommendations,csv_file_path
+
+
 
 
 if __name__ == "__main__":
-    main()
-
+    user_song_selection,user_artist_selection = get_user_input()
+    run_recommendation(user_artist_selection, user_song_selection)
 
